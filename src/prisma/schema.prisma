@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Campaign {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  alias              String?  @unique
+  status             String   @default("active")
+  cost_type          String?
+  cost_value         Float?
+  daily_cap          Int?
+  total_cap          Int?
+  schedule_json      String?  @db.Text
+  uniqueness_type    String?
+  uniqueness_period  Int?
+  traffic_source_id  Int?
+  workspace_id       Int?
+
+  flows              Flow[]
+  landings           Landing[]
+  offers             Offer[]
+}
+
+model Flow {
+  id                  Int      @id @default(autoincrement())
+  campaign_id         Int
+  campaign            Campaign @relation(fields: [campaign_id], references: [id])
+  name                String
+  position            Int
+  weight              Int      @default(100)
+  schema_type         String   // e.g., 'direct', 'landing', 'landing_offer'
+  action_type         String   // e.g., 'redirect', 'do_nothing', 'curl'
+  action_payload      String?  @db.Text
+  action_options_json String?  @db.Text
+  filter_logic        String   @default("and") // 'and' or 'or'
+  landing_ids_json    String?  @db.Text
+  offer_ids_json      String?  @db.Text
+
+  filters             Filter[]
+}
+
+model Filter {
+  id           Int    @id @default(autoincrement())
+  flow_id      Int
+  flow         Flow   @relation(fields: [flow_id], references: [id])
+  position     Int
+  type         String
+  mode         String // 'accept' or 'reject'
+  payload_json String @db.Text
+}
+
+model Landing {
+  id           Int      @id @default(autoincrement())
+  name         String
+  url          String
+  status       String   @default("active")
+  campaign_id  Int?
+  campaign     Campaign? @relation(fields: [campaign_id], references: [id])
+  workspace_id Int?
+}
+
+model Offer {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  url                  String
+  status               String   @default("active")
+  weight               Int      @default(100)
+  daily_cap            Int?
+  affiliate_network_id Int?
+  campaign_id          Int?
+  campaign             Campaign? @relation(fields: [campaign_id], references: [id])
+  workspace_id         Int?
+}
