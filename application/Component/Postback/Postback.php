@@ -183,7 +183,7 @@ class Postback
         if (strstr($subId, ":")) {
             $subIds = explode(":", $subId);
             $subId = $subIds[0];
-            for ($i = 1; $i < count($subIds); $i++) {
+            for ($i = 1, $count = count($subIds); $i < $count; $i++) {
                 $this->_params["subid" . ($i + 1)] = $subIds[$i];
             }
         }

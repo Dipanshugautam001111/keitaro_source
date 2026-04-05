@@ -63,7 +63,7 @@ if (!function_exists("array_replace_recursive")) {
         if (!is_array($array)) {
             return $array;
         }
-        for ($i = 1; $i < count($args); $i++) {
+        for ($i = 1, $count = count($args); $i < $count; $i++) {
             if (is_array($args[$i])) {
                 $array = recurse($array, $args[$i]);
             }

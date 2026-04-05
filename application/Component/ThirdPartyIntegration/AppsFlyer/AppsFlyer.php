@@ -67,7 +67,7 @@ class AppsFlyer
         if (count($rows) <= 2 && count($header) == 1) {
             \Traffic\Logging\Service\LoggerService::instance()->warning("Suspicious reply: empty");
         }
-        for ($i = 1; $i < count($rows); $i++) {
+        for ($i = 1, $count = count($rows); $i < $count; $i++) {
             $row = str_getcsv($rows[$i]);
             if (count($row) != 0) {
                 if (count($header) != count($row)) {

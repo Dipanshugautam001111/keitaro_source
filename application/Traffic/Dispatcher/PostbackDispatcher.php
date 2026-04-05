@@ -90,7 +90,7 @@ class PostbackDispatcher implements \Core\Dispatcher\DispatcherInterface
         $body = preg_replace("/<\\?xml.*?>/", "", $body);
         $body = preg_replace("/<partnerNotify>/", "", $body);
         if (preg_match_all("/<(.*?)>(.*?)<\\/.*?>/si", $body, $result)) {
-            for ($i = 0; $i < count($result[0]); $i++) {
+            for ($i = 0, $count = count($result[0]); $i < $count; $i++) {
                 $params[$result[1][$i]] = $result[2][$i];
             }
         }
