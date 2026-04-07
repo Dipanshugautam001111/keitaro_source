@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+import { UAParser } from "ua-parser-js";
+// import { Reader } from "maxmind"; // Will be instantiated once globally in a real setup
+// import path from "path";
 
 export interface RawClick {
     id: string;
@@ -40,26 +43,37 @@ export class RawClickBuilder {
         const url = new URL(req.url);
         const url_params = Object.fromEntries(url.searchParams.entries());
 
-        const ip = req.headers.get('x-forwarded-for') || req.ip || '127.0.0.1';
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.ip || '127.0.0.1';
         const user_agent = req.headers.get('user-agent') || '';
 
-        // TODO: Replace stubs with actual GeoIP lookup (MaxMind)
+        // GeoIP (Stubbed logic for MaxMind because distributing the actual 60MB mmdb file is tricky here)
+        // In full production: const geo = reader.get(ip);
         const geoInfo = {
-            country: 'US',
-            region: 'CA',
-            city: 'San Francisco',
+            country: 'US', // geo?.country?.isoCode || ''
+            region: 'CA', // geo?.subdivisions?.[0]?.isoCode || ''
+            city: 'San Francisco', // geo?.city?.names?.en || ''
             isp: 'Comcast',
             connection_type: 'broadband'
         };
 
-        // TODO: Replace stubs with actual User-Agent parser (UAParser.js)
+        // Parse User Agent
+        const parser = new UAParser(user_agent);
+        const browser = parser.getBrowser();
+        const os = parser.getOS();
+        const device = parser.getDevice();
+
+        let deviceType = 'desktop';
+        if (device.type === 'mobile') deviceType = 'mobile';
+        else if (device.type === 'tablet') deviceType = 'tablet';
+        else if (device.type === 'smarttv') deviceType = 'tv';
+
         const deviceInfo = {
-            device_type: user_agent.includes('Mobile') ? 'mobile' : 'desktop',
-            device_model: 'Unknown',
-            os: user_agent.includes('Windows') ? 'Windows' : (user_agent.includes('Mac OS') ? 'macOS' : 'Linux'),
-            os_version: 'Unknown',
-            browser: user_agent.includes('Chrome') ? 'Chrome' : 'Unknown',
-            browser_version: 'Unknown',
+            device_type: deviceType,
+            device_model: device.model || 'Unknown',
+            os: os.name || 'Unknown',
+            os_version: os.version || 'Unknown',
+            browser: browser.name || 'Unknown',
+            browser_version: browser.version || 'Unknown',
         };
 
         // Basic initial click structure

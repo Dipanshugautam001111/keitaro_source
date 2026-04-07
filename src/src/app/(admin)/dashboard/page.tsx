@@ -6,9 +6,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    // In a real scenario, attach Bearer token from auth context
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
     fetch('/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer YOUR_TOKEN_HERE' }
+        headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => setStats(data))

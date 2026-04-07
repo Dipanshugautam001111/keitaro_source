@@ -6,8 +6,9 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
     fetch('/api/admin/campaigns', {
-        headers: { 'Authorization': 'Bearer YOUR_TOKEN_HERE' }
+        headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => {

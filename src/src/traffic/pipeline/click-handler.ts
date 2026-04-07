@@ -4,6 +4,7 @@ import { FlowSelector } from "./flow-selector";
 import { MacroExpander } from "./macro-expander";
 import { prisma } from "@/lib/prisma";
 import { BotDetector } from "./bot-detector";
+import { UniquenessChecker } from "./uniqueness-checker";
 
 export class ClickHandler {
     async handle(req: NextRequest) {
@@ -13,18 +14,21 @@ export class ClickHandler {
         const click = await RawClickBuilder.build(req);
 
         // 2. Resolve Campaign
-        // Keitaro resolves by an alias in the URL (e.g. /my-campaign) or an explicit ID.
-        // For the main tracker entry point, we typically look at the path alias.
+        // When using /api/click, Keitaro often receives campaign ID or alias as a query param or dedicated path.
+        // To be safe, we check query params first, then path.
         const url = new URL(req.url);
-        const pathAlias = url.pathname.replace(/^\/|\/$/g, ''); // strip leading/trailing slashes
+        const idParam = url.searchParams.get('id');
+        const aliasParam = url.searchParams.get('alias');
+
+        let pathAlias = url.pathname.replace(/^\/|\/$/g, '');
+        if (pathAlias === 'api/click') pathAlias = ''; // Ignore API root path
 
         const campaign = await prisma.campaign.findFirst({
             where: {
                 OR: [
-                    { alias: pathAlias },
-                    // If the path is numeric, it might be a direct ID call
-                    { id: isNaN(Number(pathAlias)) ? undefined : Number(pathAlias) }
-                ],
+                    { alias: aliasParam || pathAlias || undefined },
+                    { id: idParam ? Number(idParam) : undefined }
+                ].filter(condition => Object.values(condition)[0] !== undefined && Object.values(condition)[0] !== ''),
                 status: 'active'
             },
             include: {
@@ -53,13 +57,13 @@ export class ClickHandler {
         }
 
         // 5. Uniqueness Check
-        // TODO: Check Redis for uniqueness
+        click.is_unique_campaign = await UniquenessChecker.checkCampaignUniqueness(click);
 
         console.log("Checking flow...");
         // 6. Check Flows and Filters
         const flows = campaign.flows;
 
-        const selectedFlow = FlowSelector.selectFlow(click, flows);
+        const selectedFlow = await FlowSelector.selectFlow(click, flows);
 
         if (!selectedFlow) {
             console.log("No flow matched. Falling back to default or 404.");
@@ -70,13 +74,28 @@ export class ClickHandler {
 
         console.log("Checking schema and action...");
         // 7. Execute Action & Schema
-        let targetUrl = '';
+        let targetUrl = selectedFlow.action_payload || '';
 
-        if (selectedFlow.schema_type === 'direct') {
-            // direct link to offer
-            targetUrl = "https://example-offer.com/?sub={click_id}"; // Stub Offer URL
-        } else if (selectedFlow.schema_type === 'landing') {
-            targetUrl = "https://example-landing.com/?click={click_id}"; // Stub Landing URL
+        // If the flow directs to actual landings/offers stored in the DB, parse their IDs and fetch them.
+        if (selectedFlow.schema_type === 'landing' && selectedFlow.landing_ids_json) {
+            const landingIds = JSON.parse(selectedFlow.landing_ids_json);
+            if (landingIds.length > 0) {
+                // Here we should implement weighted selection, simplified to first for now:
+                const landing = await prisma.landing.findUnique({ where: { id: landingIds[0] } });
+                if (landing) {
+                    targetUrl = landing.url;
+                    click.landing_id = landing.id;
+                }
+            }
+        } else if (selectedFlow.schema_type === 'direct' && selectedFlow.offer_ids_json) {
+            const offerIds = JSON.parse(selectedFlow.offer_ids_json);
+            if (offerIds.length > 0) {
+                const offer = await prisma.offer.findUnique({ where: { id: offerIds[0] } });
+                if (offer) {
+                    targetUrl = offer.url;
+                    click.offer_id = offer.id;
+                }
+            }
         }
 
         // 8. Expand Macros

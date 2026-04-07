@@ -20,6 +20,7 @@ model Campaign {
   uniqueness_type    String?
   uniqueness_period  Int?
   traffic_source_id  Int?
+  traffic_source     TrafficSource? @relation(fields: [traffic_source_id], references: [id])
   workspace_id       Int?
 
   flows              Flow[]
@@ -73,6 +74,7 @@ model Offer {
   weight               Int      @default(100)
   daily_cap            Int?
   affiliate_network_id Int?
+  affiliate_network    AffiliateNetwork? @relation(fields: [affiliate_network_id], references: [id])
   campaign_id          Int?
   campaign             Campaign? @relation(fields: [campaign_id], references: [id])
   workspace_id         Int?
@@ -106,6 +108,49 @@ model User {
   password_hash String
   role          String   @default("admin")
   workspace_id  Int?
+}
+
+model AffiliateNetwork {
+  id            Int      @id @default(autoincrement())
+  name          String
+  postback_url  String?  @db.Text
+  offer_param   String?
+  workspace_id  Int?
+
+  offers        Offer[]
+}
+
+model TrafficSource {
+  id            Int      @id @default(autoincrement())
+  name          String
+  postback_url  String?  @db.Text
+  params_json   String?  @db.Text
+  workspace_id  Int?
+
+  campaigns     Campaign[]
+}
+
+model ApiKey {
+  id               Int      @id @default(autoincrement())
+  user_id          Int
+  key_hash         String   @unique
+  label            String?
+  permissions_json String?  @db.Text
+  created_at       DateTime @default(now())
+}
+
+model Workspace {
+  id               Int      @id @default(autoincrement())
+  name             String
+  owner_user_id    Int
+  settings_json    String?  @db.Text
+}
+
+model Domain {
+  id            Int      @id @default(autoincrement())
+  domain        String   @unique
+  type          String   @default("redirect")
+  ssl_enabled   Boolean  @default(false)
 }
 
 model Conversion {

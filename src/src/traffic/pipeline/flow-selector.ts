@@ -1,6 +1,7 @@
 import { RawClick } from "./raw-click";
 import { Flow, Filter } from "@prisma/client";
 import { FilterEvaluator } from "../filters/filter-evaluator";
+import { UniquenessChecker } from "./uniqueness-checker";
 
 type FlowWithFilters = Flow & { filters: Filter[] };
 
@@ -13,13 +14,21 @@ export class FlowSelector {
      * 2. Regular streams (checked sequentially).
      * 3. Default stream (if no other stream matches).
      */
-    static selectFlow(click: RawClick, flows: FlowWithFilters[]): FlowWithFilters | null {
+    static async selectFlow(click: RawClick, flows: FlowWithFilters[]): Promise<FlowWithFilters | null> {
         // Sort flows by position ascending
         const sortedFlows = flows.sort((a, b) => a.position - b.position);
 
         // Keitaro evaluates streams sequentially. The first one where filters pass is chosen.
         for (const flow of sortedFlows) {
             console.log(`Checking flow... ${flow.id}`);
+
+            // Re-evaluate flow uniqueness per flow right before filter evaluation
+            // Awaiting this is required so click context is updated before filter evaluation.
+            try {
+                click.is_unique_flow = await UniquenessChecker.checkFlowUniqueness(click, flow.id);
+            } catch {
+                click.is_unique_flow = true;
+            }
 
             const logic = flow.filter_logic === 'or' ? 'or' : 'and';
             const passed = FilterEvaluator.evaluate(click, flow.filters, logic);

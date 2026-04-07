@@ -6,6 +6,8 @@ import { RegionFilter, CityFilter, IspFilter } from "./geo-filters";
 import { DeviceTypeFilter, DeviceModelFilter, OsFilter, BrowserFilter } from "./device-filters";
 import { SubIdFilter, CustomParamFilter } from "./param-filters";
 import { BotFilter } from "./bot-filter";
+import { LanguageFilter, ReferrerFilter, UserAgentFilter } from "./misc-filters";
+import { UniquenessFilter } from "./uniqueness-filter";
 
 export class FilterEvaluator {
 
@@ -46,6 +48,14 @@ export class FilterEvaluator {
                 return new CustomParamFilter(mode, payload);
             case 'bot':
                 return new BotFilter(mode, payload);
+            case 'language':
+                return new LanguageFilter(mode, payload);
+            case 'referrer':
+                return new ReferrerFilter(mode, payload);
+            case 'user_agent':
+                return new UserAgentFilter(mode, payload);
+            case 'uniqueness':
+                return new UniquenessFilter(mode, payload);
             default:
                 console.warn(`Unknown filter type: ${dbFilter.type}`);
                 return null;
