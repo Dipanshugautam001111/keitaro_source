@@ -4,6 +4,8 @@ import { Filter } from "@prisma/client";
 import { CountryFilter } from "./country-filter";
 import { RegionFilter, CityFilter, IspFilter } from "./geo-filters";
 import { DeviceTypeFilter, DeviceModelFilter, OsFilter, BrowserFilter } from "./device-filters";
+import { SubIdFilter, CustomParamFilter } from "./param-filters";
+import { BotFilter } from "./bot-filter";
 
 export class FilterEvaluator {
 
@@ -38,6 +40,12 @@ export class FilterEvaluator {
                 return new OsFilter(mode, payload);
             case 'browser':
                 return new BrowserFilter(mode, payload);
+            case 'sub_id':
+                return new SubIdFilter(mode, payload);
+            case 'custom_param':
+                return new CustomParamFilter(mode, payload);
+            case 'bot':
+                return new BotFilter(mode, payload);
             default:
                 console.warn(`Unknown filter type: ${dbFilter.type}`);
                 return null;
