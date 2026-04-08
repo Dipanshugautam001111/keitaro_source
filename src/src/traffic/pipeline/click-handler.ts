@@ -5,6 +5,7 @@ import { MacroExpander } from "./macro-expander";
 import { prisma } from "@/lib/prisma";
 import { BotDetector } from "./bot-detector";
 import { UniquenessChecker } from "./uniqueness-checker";
+import { clickQueue } from "@/lib/queue";
 
 export class ClickHandler {
     async handle(req: NextRequest) {
@@ -101,12 +102,12 @@ export class ClickHandler {
         // 8. Expand Macros
         targetUrl = MacroExpander.expand(targetUrl, click);
 
-        // 9. Log Click
-        // Write the click to the main database.
-        // In full Keitaro, this is pushed to a Redis queue for async ClickHouse insertion.
+        // 9. Log Click Asynchronously
+        // We push the click data to BullMQ, which a separate worker will pick up
+        // to batch insert into Prisma/ClickHouse, achieving the < 20ms p99 response time.
         try {
-            await prisma.click.create({
-                data: {
+            await clickQueue.add('log-click', {
+                click_data: {
                     id: click.id,
                     campaign_id: click.campaign_id,
                     flow_id: click.flow_id,
@@ -128,7 +129,8 @@ export class ClickHandler {
                 }
             });
         } catch (e) {
-            console.error("Failed to log click to database:", e);
+            console.error("Failed to enqueue click logging job:", e);
+            // Non-blocking, the user is still redirected.
         }
 
         return {

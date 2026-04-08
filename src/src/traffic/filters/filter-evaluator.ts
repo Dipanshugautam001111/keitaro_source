@@ -8,6 +8,7 @@ import { SubIdFilter, CustomParamFilter } from "./param-filters";
 import { BotFilter } from "./bot-filter";
 import { LanguageFilter, ReferrerFilter, UserAgentFilter } from "./misc-filters";
 import { UniquenessFilter } from "./uniqueness-filter";
+import { DayOfWeekFilter, TimeOfDayFilter } from "./time-filters";
 
 export class FilterEvaluator {
 
@@ -56,6 +57,10 @@ export class FilterEvaluator {
                 return new UserAgentFilter(mode, payload);
             case 'uniqueness':
                 return new UniquenessFilter(mode, payload);
+            case 'day_of_week':
+                return new DayOfWeekFilter(mode, payload);
+            case 'time_of_day':
+                return new TimeOfDayFilter(mode, payload);
             default:
                 console.warn(`Unknown filter type: ${dbFilter.type}`);
                 return null;
