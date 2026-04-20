@@ -28,7 +28,7 @@ class ExtractVisitors implements StageInterface
     }
     private function _assign($entries, ExtractVisitors\VisitorAggregator $aggregator)
     {
-        for ($i = 0; $i < count($entries); $i++) {
+        for ($i = 0, $count = count($entries); $i < $count; $i++) {
             $entries[$i]["visitor_id"] = $aggregator->getId($entries[$i]["visitor_code"])["id"];
         }
         return $entries;

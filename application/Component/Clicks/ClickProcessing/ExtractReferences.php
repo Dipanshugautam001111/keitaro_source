@@ -73,7 +73,7 @@ class ExtractReferences
     }
     private function _assign($rawClicks, \Component\Grid\Definition\Relation $relation, ExtractReferences\ReferenceAggregator $container)
     {
-        for ($i = 0; $i < count($rawClicks); $i++) {
+        for ($i = 0, $count = count($rawClicks); $i < $count; $i++) {
             $value = $this->_getMappedValue($relation, $rawClicks[$i]);
             if (!($this->_isEmpty($value) && $this->_ignoreEmpty)) {
                 if (!$this->_isEmpty($value) || $relation->allowEmpty()) {
