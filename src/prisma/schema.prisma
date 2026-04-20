@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Campaign {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  alias              String?  @unique
+  status             String   @default("active")
+  cost_type          String?
+  cost_value         Float?
+  daily_cap          Int?
+  total_cap          Int?
+  schedule_json      String?  @db.Text
+  uniqueness_type    String?
+  uniqueness_period  Int?
+  traffic_source_id  Int?
+  traffic_source     TrafficSource? @relation(fields: [traffic_source_id], references: [id])
+  workspace_id       Int?
+
+  flows              Flow[]
+  landings           Landing[]
+  offers             Offer[]
+}
+
+model Flow {
+  id                  Int      @id @default(autoincrement())
+  campaign_id         Int
+  campaign            Campaign @relation(fields: [campaign_id], references: [id])
+  name                String
+  position            Int
+  weight              Int      @default(100)
+  schema_type         String   // e.g., 'direct', 'landing', 'landing_offer'
+  action_type         String   // e.g., 'redirect', 'do_nothing', 'curl'
+  action_payload      String?  @db.Text
+  action_options_json String?  @db.Text
+  filter_logic        String   @default("and") // 'and' or 'or'
+  landing_ids_json    String?  @db.Text
+  offer_ids_json      String?  @db.Text
+
+  filters             Filter[]
+}
+
+model Filter {
+  id           Int    @id @default(autoincrement())
+  flow_id      Int
+  flow         Flow   @relation(fields: [flow_id], references: [id])
+  position     Int
+  type         String
+  mode         String // 'accept' or 'reject'
+  payload_json String @db.Text
+}
+
+model Landing {
+  id           Int      @id @default(autoincrement())
+  name         String
+  url          String
+  status       String   @default("active")
+  campaign_id  Int?
+  campaign     Campaign? @relation(fields: [campaign_id], references: [id])
+  workspace_id Int?
+}
+
+model Offer {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  url                  String
+  status               String   @default("active")
+  weight               Int      @default(100)
+  daily_cap            Int?
+  affiliate_network_id Int?
+  affiliate_network    AffiliateNetwork? @relation(fields: [affiliate_network_id], references: [id])
+  campaign_id          Int?
+  campaign             Campaign? @relation(fields: [campaign_id], references: [id])
+  workspace_id         Int?
+}
+
+model Click {
+  id                 String   @id @default(uuid())
+  campaign_id        Int
+  flow_id            Int?
+  landing_id         Int?
+  offer_id           Int?
+  ip                 String
+  user_agent         String?
+  referrer           String?
+  country            String?
+  region             String?
+  city               String?
+  isp                String?
+  device_type        String?
+  device_model       String?
+  os                 String?
+  browser            String?
+  is_bot             Boolean  @default(false)
+  url_params_json    String?  @db.Text
+  created_at         DateTime @default(now())
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  role          String   @default("admin")
+  workspace_id  Int?
+}
+
+model AffiliateNetwork {
+  id            Int      @id @default(autoincrement())
+  name          String
+  postback_url  String?  @db.Text
+  offer_param   String?
+  workspace_id  Int?
+
+  offers        Offer[]
+}
+
+model TrafficSource {
+  id            Int      @id @default(autoincrement())
+  name          String
+  postback_url  String?  @db.Text
+  params_json   String?  @db.Text
+  workspace_id  Int?
+
+  campaigns     Campaign[]
+}
+
+model ApiKey {
+  id               Int      @id @default(autoincrement())
+  user_id          Int
+  key_hash         String   @unique
+  label            String?
+  permissions_json String?  @db.Text
+  created_at       DateTime @default(now())
+}
+
+model Workspace {
+  id               Int      @id @default(autoincrement())
+  name             String
+  owner_user_id    Int
+  settings_json    String?  @db.Text
+}
+
+model Domain {
+  id            Int      @id @default(autoincrement())
+  domain        String   @unique
+  type          String   @default("redirect")
+  ssl_enabled   Boolean  @default(false)
+}
+
+model Conversion {
+  id                 Int      @id @default(autoincrement())
+  click_id           String   @unique
+  campaign_id        Int?
+  offer_id           Int?
+  revenue            Float?
+  status             String   @default("lead")
+  transaction_id     String?  @unique
+  created_at         DateTime @default(now())
+}
